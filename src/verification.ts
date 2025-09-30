@@ -14,17 +14,26 @@ export function calculateExpectedResults(cases: IllnessCase[]): QueryTestData {
   const sampleIllnessCaseId = randomCase.illnessCaseId;
 
   // Query 1: Count documents with matching firstName
+  const startQ1 = Date.now();
   const expectedQuery1Count = documents.filter(
-    (doc) => doc.firstName === sampleFirstName
+    (doc) => doc.firstName === sampleFirstName,
   ).length;
+  const timeQ1 = Date.now() - startQ1;
+  console.log(`  Verification 1: ${timeQ1}ms`);
 
   // Query 2: Count documents with matching illnessCaseId
+  const startQ2 = Date.now();
   const expectedQuery2Count = documents.filter(
-    (doc) => doc.illnessCaseId === sampleIllnessCaseId
+    (doc) => doc.illnessCaseId === sampleIllnessCaseId,
   ).length;
+  const timeQ2 = Date.now() - startQ2;
+  console.log(`  Verification 2: ${timeQ2}ms`);
 
   // Query 3: Count first 100 documents sorted by publishedAt
+  const startQ3 = Date.now();
   const expectedQuery3Count = Math.min(100, documents.length);
+  const timeQ3 = Date.now() - startQ3;
+  console.log(`  Verification 3: ${timeQ3}ms`);
 
   return {
     sampleFirstName,
@@ -46,19 +55,19 @@ export function verifyQueryResults(
 
   if (query1Count !== expected.expectedQuery1Count) {
     errors.push(
-      `Query 1 mismatch: expected ${expected.expectedQuery1Count}, got ${query1Count}`
+      `Query 1 mismatch: expected ${expected.expectedQuery1Count}, got ${query1Count}`,
     );
   }
 
   if (query2Count !== expected.expectedQuery2Count) {
     errors.push(
-      `Query 2 mismatch: expected ${expected.expectedQuery2Count}, got ${query2Count}`
+      `Query 2 mismatch: expected ${expected.expectedQuery2Count}, got ${query2Count}`,
     );
   }
 
   if (query3Count !== expected.expectedQuery3Count) {
     errors.push(
-      `Query 3 mismatch: expected ${expected.expectedQuery3Count}, got ${query3Count}`
+      `Query 3 mismatch: expected ${expected.expectedQuery3Count}, got ${query3Count}`,
     );
   }
 
@@ -67,6 +76,8 @@ export function verifyQueryResults(
     errors.forEach((err) => console.error(`  - ${err}`));
     throw new Error(`Verification failed for ${modelName}`);
   } else {
-    console.log(`  ✓ Verification passed (Q1: ${query1Count}, Q2: ${query2Count}, Q3: ${query3Count})`);
+    console.log(
+      `  ✓ Verification passed (Q1: ${query1Count}, Q2: ${query2Count}, Q3: ${query3Count})`,
+    );
   }
 }

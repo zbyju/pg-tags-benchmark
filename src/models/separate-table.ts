@@ -66,31 +66,126 @@ export class SeparateTableModel implements DataModelImplementation {
         for (let j = 0; j < docBatch.length; j += tagDocBatchSize) {
           const tagDocBatch = docBatch.slice(j, j + tagDocBatchSize);
           const tagInserts = tagDocBatch.flatMap((doc) => {
-            const tags = [];
+            const tags: any[] = [];
 
             // Core tags (always present)
-            tags.push({ document_id: doc.documentId, key: "firstname", value: doc.firstName });
-            tags.push({ document_id: doc.documentId, key: "lastname", value: doc.lastName });
-            tags.push({ document_id: doc.documentId, key: "illness_case_id", value: doc.illnessCaseId });
-            tags.push({ document_id: doc.documentId, key: "tenant_id", value: doc.tenantId });
-            tags.push({ document_id: doc.documentId, key: "published_at", value: doc.publishedAt.toISOString() });
+            tags.push({
+              document_id: doc.documentId,
+              key: "firstname",
+              value: doc.firstName,
+            });
+            tags.push({
+              document_id: doc.documentId,
+              key: "lastname",
+              value: doc.lastName,
+            });
+            tags.push({
+              document_id: doc.documentId,
+              key: "illness_case_id",
+              value: doc.illnessCaseId,
+            });
+            tags.push({
+              document_id: doc.documentId,
+              key: "tenant_id",
+              value: doc.tenantId,
+            });
+            tags.push({
+              document_id: doc.documentId,
+              key: "published_at",
+              value: doc.publishedAt.toISOString(),
+            });
 
             // Optional tags (only add if defined)
-            if (doc.email) tags.push({ document_id: doc.documentId, key: "email", value: doc.email });
-            if (doc.phoneNumber) tags.push({ document_id: doc.documentId, key: "phone_number", value: doc.phoneNumber });
-            if (doc.address) tags.push({ document_id: doc.documentId, key: "address", value: doc.address });
-            if (doc.city) tags.push({ document_id: doc.documentId, key: "city", value: doc.city });
-            if (doc.country) tags.push({ document_id: doc.documentId, key: "country", value: doc.country });
-            if (doc.zipCode) tags.push({ document_id: doc.documentId, key: "zip_code", value: doc.zipCode });
-            if (doc.diagnosis) tags.push({ document_id: doc.documentId, key: "diagnosis", value: doc.diagnosis });
-            if (doc.severity) tags.push({ document_id: doc.documentId, key: "severity", value: doc.severity });
-            if (doc.status) tags.push({ document_id: doc.documentId, key: "status", value: doc.status });
-            if (doc.assignedTo) tags.push({ document_id: doc.documentId, key: "assigned_to", value: doc.assignedTo });
-            if (doc.department) tags.push({ document_id: doc.documentId, key: "department", value: doc.department });
-            if (doc.priority) tags.push({ document_id: doc.documentId, key: "priority", value: doc.priority });
-            if (doc.category) tags.push({ document_id: doc.documentId, key: "category", value: doc.category });
-            if (doc.subcategory) tags.push({ document_id: doc.documentId, key: "subcategory", value: doc.subcategory });
-            if (doc.notes) tags.push({ document_id: doc.documentId, key: "notes", value: doc.notes });
+            if (doc.email)
+              tags.push({
+                document_id: doc.documentId,
+                key: "email",
+                value: doc.email,
+              });
+            if (doc.phoneNumber)
+              tags.push({
+                document_id: doc.documentId,
+                key: "phone_number",
+                value: doc.phoneNumber,
+              });
+            if (doc.address)
+              tags.push({
+                document_id: doc.documentId,
+                key: "address",
+                value: doc.address,
+              });
+            if (doc.city)
+              tags.push({
+                document_id: doc.documentId,
+                key: "city",
+                value: doc.city,
+              });
+            if (doc.country)
+              tags.push({
+                document_id: doc.documentId,
+                key: "country",
+                value: doc.country,
+              });
+            if (doc.zipCode)
+              tags.push({
+                document_id: doc.documentId,
+                key: "zip_code",
+                value: doc.zipCode,
+              });
+            if (doc.diagnosis)
+              tags.push({
+                document_id: doc.documentId,
+                key: "diagnosis",
+                value: doc.diagnosis,
+              });
+            if (doc.severity)
+              tags.push({
+                document_id: doc.documentId,
+                key: "severity",
+                value: doc.severity,
+              });
+            if (doc.status)
+              tags.push({
+                document_id: doc.documentId,
+                key: "status",
+                value: doc.status,
+              });
+            if (doc.assignedTo)
+              tags.push({
+                document_id: doc.documentId,
+                key: "assigned_to",
+                value: doc.assignedTo,
+              });
+            if (doc.department)
+              tags.push({
+                document_id: doc.documentId,
+                key: "department",
+                value: doc.department,
+              });
+            if (doc.priority)
+              tags.push({
+                document_id: doc.documentId,
+                key: "priority",
+                value: doc.priority,
+              });
+            if (doc.category)
+              tags.push({
+                document_id: doc.documentId,
+                key: "category",
+                value: doc.category,
+              });
+            if (doc.subcategory)
+              tags.push({
+                document_id: doc.documentId,
+                key: "subcategory",
+                value: doc.subcategory,
+              });
+            if (doc.notes)
+              tags.push({
+                document_id: doc.documentId,
+                key: "notes",
+                value: doc.notes,
+              });
 
             return tags;
           });
@@ -106,38 +201,29 @@ export class SeparateTableModel implements DataModelImplementation {
 
   async query1(sql: postgres.Sql, firstName: string): Promise<any[]> {
     const result = await sql`
-      SELECT d.document_id, d.created_by, d.created_at,
-             jsonb_object_agg(dt_all.key, dt_all.value) as tags
+      SELECT d.document_id
       FROM documents d
       JOIN document_tags dt_fname ON d.document_id = dt_fname.document_id AND dt_fname.key = 'firstname'
-      JOIN document_tags dt_all ON d.document_id = dt_all.document_id
       WHERE dt_fname.value = ${firstName}
-      GROUP BY d.document_id, d.created_by, d.created_at
     `;
     return result;
   }
 
   async query2(sql: postgres.Sql, illnessCaseId: string): Promise<any[]> {
     const result = await sql`
-      SELECT d.document_id, d.created_by, d.created_at,
-             jsonb_object_agg(dt_all.key, dt_all.value) as tags
+      SELECT d.document_id
       FROM documents d
       JOIN document_tags dt_illness ON d.document_id = dt_illness.document_id AND dt_illness.key = 'illness_case_id'
-      JOIN document_tags dt_all ON d.document_id = dt_all.document_id
       WHERE dt_illness.value = ${illnessCaseId}
-      GROUP BY d.document_id, d.created_by, d.created_at
     `;
     return result;
   }
 
   async query3(sql: postgres.Sql): Promise<any[]> {
     const result = await sql`
-      SELECT d.document_id, d.created_by, d.created_at,
-             jsonb_object_agg(dt_all.key, dt_all.value) as tags
+      SELECT d.document_id
       FROM documents d
       JOIN document_tags dt ON d.document_id = dt.document_id AND dt.key = 'published_at'
-      JOIN document_tags dt_all ON d.document_id = dt_all.document_id
-      GROUP BY d.document_id, d.created_by, d.created_at, dt.value
       ORDER BY dt.value ASC
       LIMIT 100
     `;

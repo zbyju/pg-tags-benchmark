@@ -45,30 +45,38 @@ export class JsonbModel implements DataModelImplementation {
       for (let i = 0; i < documents.length; i += docBatchSize) {
         const docBatch = documents.slice(i, i + docBatchSize);
         const docInserts = docBatch.map((doc) => {
-          const tags = [];
+          const tags: any[] = [];
 
           // Core tags (always present)
           tags.push({ key: "firstname", value: doc.firstName });
           tags.push({ key: "lastname", value: doc.lastName });
           tags.push({ key: "illness_case_id", value: doc.illnessCaseId });
           tags.push({ key: "tenant_id", value: doc.tenantId });
-          tags.push({ key: "published_at", value: doc.publishedAt.toISOString() });
+          tags.push({
+            key: "published_at",
+            value: doc.publishedAt.toISOString(),
+          });
 
           // Optional tags (only add if defined)
           if (doc.email) tags.push({ key: "email", value: doc.email });
-          if (doc.phoneNumber) tags.push({ key: "phone_number", value: doc.phoneNumber });
+          if (doc.phoneNumber)
+            tags.push({ key: "phone_number", value: doc.phoneNumber });
           if (doc.address) tags.push({ key: "address", value: doc.address });
           if (doc.city) tags.push({ key: "city", value: doc.city });
           if (doc.country) tags.push({ key: "country", value: doc.country });
           if (doc.zipCode) tags.push({ key: "zip_code", value: doc.zipCode });
-          if (doc.diagnosis) tags.push({ key: "diagnosis", value: doc.diagnosis });
+          if (doc.diagnosis)
+            tags.push({ key: "diagnosis", value: doc.diagnosis });
           if (doc.severity) tags.push({ key: "severity", value: doc.severity });
           if (doc.status) tags.push({ key: "status", value: doc.status });
-          if (doc.assignedTo) tags.push({ key: "assigned_to", value: doc.assignedTo });
-          if (doc.department) tags.push({ key: "department", value: doc.department });
+          if (doc.assignedTo)
+            tags.push({ key: "assigned_to", value: doc.assignedTo });
+          if (doc.department)
+            tags.push({ key: "department", value: doc.department });
           if (doc.priority) tags.push({ key: "priority", value: doc.priority });
           if (doc.category) tags.push({ key: "category", value: doc.category });
-          if (doc.subcategory) tags.push({ key: "subcategory", value: doc.subcategory });
+          if (doc.subcategory)
+            tags.push({ key: "subcategory", value: doc.subcategory });
           if (doc.notes) tags.push({ key: "notes", value: doc.notes });
 
           return {
@@ -89,10 +97,7 @@ export class JsonbModel implements DataModelImplementation {
 
   async query1(sql: postgres.Sql, firstName: string): Promise<any[]> {
     const result = await sql`
-      SELECT document_id,
-             created_by,
-             created_at,
-             tags
+      SELECT document_id
       FROM documents
       WHERE tags @> ${sql.json([{ key: "firstname", value: firstName }])}
     `;
@@ -101,10 +106,7 @@ export class JsonbModel implements DataModelImplementation {
 
   async query2(sql: postgres.Sql, illnessCaseId: string): Promise<any[]> {
     const result = await sql`
-      SELECT document_id,
-             created_by,
-             created_at,
-             tags
+      SELECT document_id
       FROM documents
       WHERE tags @> ${sql.json([{ key: "illness_case_id", value: illnessCaseId }])}
     `;
@@ -113,10 +115,7 @@ export class JsonbModel implements DataModelImplementation {
 
   async query3(sql: postgres.Sql): Promise<any[]> {
     const result = await sql`
-      SELECT document_id,
-             created_by,
-             created_at,
-             tags
+      SELECT document_id
       FROM documents
       ORDER BY (
         SELECT value->>'value'

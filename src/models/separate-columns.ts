@@ -98,11 +98,7 @@ export class SeparateColumnsModel implements DataModelImplementation {
 
   async query1(sql: postgres.Sql, firstName: string): Promise<any[]> {
     const result = await sql`
-      SELECT document_id, created_by, created_at,
-             firstname, lastname, illness_case_id, tenant_id, published_at,
-             email, phone_number, address, city, country, zip_code,
-             diagnosis, severity, status, assigned_to, department,
-             priority, category, subcategory, notes
+      SELECT document_id
       FROM documents
       WHERE firstname = ${firstName}
     `;
@@ -111,11 +107,7 @@ export class SeparateColumnsModel implements DataModelImplementation {
 
   async query2(sql: postgres.Sql, illnessCaseId: string): Promise<any[]> {
     const result = await sql`
-      SELECT document_id, created_by, created_at,
-             firstname, lastname, illness_case_id, tenant_id, published_at,
-             email, phone_number, address, city, country, zip_code,
-             diagnosis, severity, status, assigned_to, department,
-             priority, category, subcategory, notes
+      SELECT document_id
       FROM documents
       WHERE illness_case_id = ${illnessCaseId}
     `;
@@ -124,11 +116,7 @@ export class SeparateColumnsModel implements DataModelImplementation {
 
   async query3(sql: postgres.Sql): Promise<any[]> {
     const result = await sql`
-      SELECT document_id, created_by, created_at,
-             firstname, lastname, illness_case_id, tenant_id, published_at,
-             email, phone_number, address, city, country, zip_code,
-             diagnosis, severity, status, assigned_to, department,
-             priority, category, subcategory, notes
+      SELECT document_id
       FROM documents
       ORDER BY published_at ASC
       LIMIT 100

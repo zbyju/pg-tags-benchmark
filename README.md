@@ -6,6 +6,8 @@ This benchmark compares four different PostgreSQL data modeling approaches for s
 
 ## Test Configuration
 
+Benchmark is running through Bun on **Postgres 18**.
+
 ### Data Models Tested
 
 1. **separate_table** - `documents` table + `document_tags` table with `id` (primary key), `document_id` (foreign key), `key` (text), `value` (text)

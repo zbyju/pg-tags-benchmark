@@ -11,8 +11,13 @@ plt.rcParams["figure.figsize"] = (15, 10)
 df = pd.read_csv("benchmark_averages.csv")
 df = df.sort_values("totalDocuments")
 
-# Define the order for data models to ensure consistency
-model_order = ["separate_table", "separate_table_indexed", "jsonb", "jsonb_indexed"]
+# Define the order for data models to ensure consistency (dynamically detect available models)
+all_models = ["separate_table", "separate_table_indexed", "jsonb", "jsonb_indexed", "separate_columns", "separate_columns_indexed"]
+model_order = [m for m in all_models if m in df["dataModel"].unique()]
+
+print(f"Found {len(model_order)} data models: {model_order}")
+print(f"Found {len(df['totalDocuments'].unique())} unique document scales")
+print(f"Scales: {sorted(df['totalDocuments'].unique())}")
 
 # Create a figure with multiple subplots
 fig = plt.figure(figsize=(20, 24))
@@ -23,6 +28,8 @@ colors = {
     "separate_table_indexed": "#ff7f0e",
     "jsonb": "#2ca02c",
     "jsonb_indexed": "#d62728",
+    "separate_columns": "#9467bd",
+    "separate_columns_indexed": "#8c564b",
 }
 
 # 1. Insert Performance Comparison
@@ -119,122 +126,111 @@ ax4.set_xscale("log")
 ax4.set_yscale("log")
 ax4.grid(True, alpha=0.3, linestyle="--")
 
-# 5. Direct Comparison at Specific Scale (50k documents)
+# 5. Direct Comparison at Small Scale
 ax5 = plt.subplot(4, 2, 5)
-scale_50k = df[(df["totalDocuments"] >= 40000) & (df["totalDocuments"] <= 60000)].copy()
-scale_50k = scale_50k.groupby("dataModel").first().reset_index()
-scale_50k["dataModel"] = pd.Categorical(
-    scale_50k["dataModel"], categories=model_order, ordered=True
-)
-scale_50k = scale_50k.sort_values("dataModel")
+# Get smallest scale that has data for all models
+available_scales = sorted(df['totalDocuments'].unique())
+small_scale = None
+for scale in available_scales:
+    scale_data = df[df["totalDocuments"] == scale]
+    if len(scale_data) == len(model_order):
+        small_scale = scale
+        break
 
-x = np.arange(len(model_order))
-width = 0.2
-ax5.bar(
-    x - 1.5 * width,
-    scale_50k["avgInsertTimeMs"],
-    width,
-    label="Insert",
-    alpha=0.8,
-    color="#1f77b4",
-)
-ax5.bar(
-    x - 0.5 * width,
-    scale_50k["avgQuery1TimeMs"],
-    width,
-    label="Query 1",
-    alpha=0.8,
-    color="#ff7f0e",
-)
-ax5.bar(
-    x + 0.5 * width,
-    scale_50k["avgQuery2TimeMs"],
-    width,
-    label="Query 2",
-    alpha=0.8,
-    color="#2ca02c",
-)
-ax5.bar(
-    x + 1.5 * width,
-    scale_50k["avgQuery3TimeMs"],
-    width,
-    label="Query 3",
-    alpha=0.8,
-    color="#d62728",
-)
-ax5.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
-ax5.set_title("Performance at ~50k Documents", fontsize=16, fontweight="bold", pad=20)
-ax5.set_xticks(x)
-ax5.set_xticklabels(
-    [m.replace("_", " ").title() for m in model_order],
-    rotation=45,
-    ha="right",
-    fontsize=10,
-)
-ax5.legend(fontsize=11)
-ax5.set_yscale("log")
-ax5.grid(True, alpha=0.3, axis="y", linestyle="--")
+if small_scale is not None:
+    scale_data = df[df["totalDocuments"] == small_scale].copy()
+    scale_data["dataModel"] = pd.Categorical(
+        scale_data["dataModel"], categories=model_order, ordered=True
+    )
+    scale_data = scale_data.sort_values("dataModel")
 
-# 6. Direct Comparison at Maximum Scale (~5M documents)
+    # Group by query type instead of by model
+    x = np.arange(4)  # 4 query types: Insert, Query1, Query2, Query3
+    width = 0.8 / len(model_order)
+
+    for i, model in enumerate(model_order):
+        model_data = scale_data[scale_data["dataModel"] == model].iloc[0]
+        offset = (i - len(model_order)/2 + 0.5) * width
+        values = [
+            model_data["avgInsertTimeMs"],
+            model_data["avgQuery1TimeMs"],
+            model_data["avgQuery2TimeMs"],
+            model_data["avgQuery3TimeMs"]
+        ]
+        ax5.bar(
+            x + offset,
+            values,
+            width,
+            label=model.replace("_", " ").title(),
+            alpha=0.8,
+            color=colors[model]
+        )
+
+    ax5.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
+    ax5.set_title(f"Performance at {int(small_scale)} Documents", fontsize=16, fontweight="bold", pad=20)
+    ax5.set_xticks(x)
+    ax5.set_xticklabels(["Insert", "Query 1", "Query 2", "Query 3"], fontsize=11)
+    ax5.legend(fontsize=9, ncol=2)
+    ax5.set_yscale("log")
+    ax5.grid(True, alpha=0.3, axis="y", linestyle="--")
+else:
+    ax5.text(0.5, 0.5, "No complete data available", ha='center', va='center')
+
+# 6. Direct Comparison at Large Scale
 ax6 = plt.subplot(4, 2, 6)
-max_scale = df[df["totalDocuments"] >= 4000000].copy()
-max_scale = max_scale.groupby("dataModel").first().reset_index()
-max_scale["dataModel"] = pd.Categorical(
-    max_scale["dataModel"], categories=model_order, ordered=True
-)
-max_scale = max_scale.sort_values("dataModel")
+# Get largest scale that has data for all models
+large_scale = None
+for scale in reversed(available_scales):
+    scale_data = df[df["totalDocuments"] == scale]
+    if len(scale_data) == len(model_order):
+        large_scale = scale
+        break
 
-x = np.arange(len(model_order))
-width = 0.2
-ax6.bar(
-    x - 1.5 * width,
-    max_scale["avgInsertTimeMs"],
-    width,
-    label="Insert",
-    alpha=0.8,
-    color="#1f77b4",
-)
-ax6.bar(
-    x - 0.5 * width,
-    max_scale["avgQuery1TimeMs"],
-    width,
-    label="Query 1",
-    alpha=0.8,
-    color="#ff7f0e",
-)
-ax6.bar(
-    x + 0.5 * width,
-    max_scale["avgQuery2TimeMs"],
-    width,
-    label="Query 2",
-    alpha=0.8,
-    color="#2ca02c",
-)
-ax6.bar(
-    x + 1.5 * width,
-    max_scale["avgQuery3TimeMs"],
-    width,
-    label="Query 3",
-    alpha=0.8,
-    color="#d62728",
-)
-ax6.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
-ax6.set_title(
-    "Performance at Maximum Scale (~5M documents)",
-    fontsize=16,
-    fontweight="bold",
-    pad=20,
-)
-ax6.set_xticks(x)
-ax6.set_xticklabels(
-    [m.replace("_", " ").title() for m in model_order],
-    rotation=45,
-    ha="right",
-    fontsize=10,
-)
-ax6.legend(fontsize=11)
-ax6.set_yscale("log")
-ax6.grid(True, alpha=0.3, axis="y", linestyle="--")
+if large_scale is not None:
+    scale_data = df[df["totalDocuments"] == large_scale].copy()
+    scale_data["dataModel"] = pd.Categorical(
+        scale_data["dataModel"], categories=model_order, ordered=True
+    )
+    scale_data = scale_data.sort_values("dataModel")
+
+    # Group by query type instead of by model
+    x = np.arange(4)  # 4 query types: Insert, Query1, Query2, Query3
+    width = 0.8 / len(model_order)
+
+    for i, model in enumerate(model_order):
+        model_data = scale_data[scale_data["dataModel"] == model].iloc[0]
+        offset = (i - len(model_order)/2 + 0.5) * width
+        values = [
+            model_data["avgInsertTimeMs"],
+            model_data["avgQuery1TimeMs"],
+            model_data["avgQuery2TimeMs"],
+            model_data["avgQuery3TimeMs"]
+        ]
+        ax6.bar(
+            x + offset,
+            values,
+            width,
+            label=model.replace("_", " ").title(),
+            alpha=0.8,
+            color=colors[model]
+        )
+
+    ax6.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
+    # Format large numbers nicely
+    if large_scale >= 1000000:
+        scale_label = f"{large_scale/1000000:.1f}M"
+    elif large_scale >= 1000:
+        scale_label = f"{large_scale/1000:.0f}K"
+    else:
+        scale_label = str(int(large_scale))
+    ax6.set_title(f"Performance at {scale_label} Documents", fontsize=16, fontweight="bold", pad=20)
+    ax6.set_xticks(x)
+    ax6.set_xticklabels(["Insert", "Query 1", "Query 2", "Query 3"], fontsize=11)
+    ax6.legend(fontsize=9, ncol=2)
+    ax6.set_yscale("log")
+    ax6.grid(True, alpha=0.3, axis="y", linestyle="--")
+else:
+    ax6.text(0.5, 0.5, "No complete data available", ha='center', va='center')
 
 # 7. All Queries Combined - Average Performance Comparison
 ax7 = plt.subplot(4, 2, 7)
@@ -268,66 +264,70 @@ ax7.set_xscale("log")
 ax7.set_yscale("log")
 ax7.grid(True, alpha=0.3, linestyle="--")
 
-# 8. Side-by-Side Model Comparison at Key Scales
+# 8. Model Comparison at Middle Scale
 ax8 = plt.subplot(4, 2, 8)
 
-# Select 4 representative scales
-key_scales = df.sort_values("totalDocuments")["totalDocuments"].unique()
-scale_indices = [0, len(key_scales) // 3, 2 * len(key_scales) // 3, -1]
-selected_scales = [key_scales[i] for i in scale_indices]
+# Get middle scale that has data for all models
+middle_scale = None
+mid_index = len(available_scales) // 2
+# Search around middle for complete data
+for offset in range(len(available_scales)):
+    for direction in [0, 1, -1]:
+        idx = mid_index + direction * offset
+        if 0 <= idx < len(available_scales):
+            scale = available_scales[idx]
+            scale_data = df[df["totalDocuments"] == scale]
+            if len(scale_data) == len(model_order):
+                middle_scale = scale
+                break
+    if middle_scale is not None:
+        break
 
-comparison_data = df[df["totalDocuments"].isin(selected_scales)].copy()
-comparison_data = comparison_data.sort_values(["totalDocuments", "dataModel"])
-
-# Calculate total time (insert + avg of all queries)
-comparison_data["total_time"] = (
-    comparison_data["avgInsertTimeMs"]
-    + comparison_data["avgQuery1TimeMs"]
-    + comparison_data["avgQuery2TimeMs"]
-    + comparison_data["avgQuery3TimeMs"]
-) / 4
-
-# Group by scale and model
-groups = []
-labels = []
-for scale in selected_scales:
-    scale_data = comparison_data[comparison_data["totalDocuments"] == scale]
+if middle_scale is not None:
+    scale_data = df[df["totalDocuments"] == middle_scale].copy()
     scale_data["dataModel"] = pd.Categorical(
         scale_data["dataModel"], categories=model_order, ordered=True
     )
     scale_data = scale_data.sort_values("dataModel")
-    groups.append(scale_data)
-    labels.append(f"{int(scale/1000)}k docs")
 
-x = np.arange(len(model_order))
-width = 0.2
-bar_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+    # Group by query type instead of by model
+    x = np.arange(4)  # 4 query types: Insert, Query1, Query2, Query3
+    width = 0.8 / len(model_order)
 
-for i, (group, label) in enumerate(zip(groups, labels)):
-    offset = (i - 1.5) * width
-    ax8.bar(
-        x + offset,
-        group["total_time"],
-        width,
-        label=label,
-        alpha=0.8,
-        color=bar_colors[i],
-    )
+    for i, model in enumerate(model_order):
+        model_data = scale_data[scale_data["dataModel"] == model].iloc[0]
+        offset = (i - len(model_order)/2 + 0.5) * width
+        values = [
+            model_data["avgInsertTimeMs"],
+            model_data["avgQuery1TimeMs"],
+            model_data["avgQuery2TimeMs"],
+            model_data["avgQuery3TimeMs"]
+        ]
+        ax8.bar(
+            x + offset,
+            values,
+            width,
+            label=model.replace("_", " ").title(),
+            alpha=0.8,
+            color=colors[model]
+        )
 
-ax8.set_ylabel("Avg Time (ms)", fontsize=13, fontweight="bold")
-ax8.set_title(
-    "Overall Performance at Key Scales", fontsize=16, fontweight="bold", pad=20
-)
-ax8.set_xticks(x)
-ax8.set_xticklabels(
-    [m.replace("_", " ").title() for m in model_order],
-    rotation=45,
-    ha="right",
-    fontsize=10,
-)
-ax8.legend(fontsize=11, title="Scale", title_fontsize=11)
-ax8.set_yscale("log")
-ax8.grid(True, alpha=0.3, axis="y", linestyle="--")
+    ax8.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
+    # Format large numbers nicely
+    if middle_scale >= 1000000:
+        scale_label = f"{middle_scale/1000000:.1f}M"
+    elif middle_scale >= 1000:
+        scale_label = f"{middle_scale/1000:.0f}K"
+    else:
+        scale_label = str(int(middle_scale))
+    ax8.set_title(f"Performance at {scale_label} Documents", fontsize=16, fontweight="bold", pad=20)
+    ax8.set_xticks(x)
+    ax8.set_xticklabels(["Insert", "Query 1", "Query 2", "Query 3"], fontsize=11)
+    ax8.legend(fontsize=9, ncol=2)
+    ax8.set_yscale("log")
+    ax8.grid(True, alpha=0.3, axis="y", linestyle="--")
+else:
+    ax8.text(0.5, 0.5, "No complete data available", ha='center', va='center')
 
 plt.tight_layout()
 plt.savefig("benchmark_analysis.png", dpi=300, bbox_inches="tight")
@@ -335,29 +335,43 @@ print("Plot saved as 'benchmark_analysis.png'")
 
 # Generate summary statistics
 print("\n=== SUMMARY STATISTICS ===\n")
+
+# Best performance for each metric
 print("Best Insert Performance:")
-print(
-    df.loc[df["avgInsertTimeMs"].idxmin()][
-        ["dataModel", "totalDocuments", "avgInsertTimeMs"]
-    ]
-)
-print("\nBest Query 1 Performance:")
-print(
-    df.loc[df["avgQuery1TimeMs"].idxmin()][
-        ["dataModel", "totalDocuments", "avgQuery1TimeMs"]
-    ]
-)
-print("\nBest Query 2 Performance:")
-print(
-    df.loc[df["avgQuery2TimeMs"].idxmin()][
-        ["dataModel", "totalDocuments", "avgQuery2TimeMs"]
-    ]
-)
-print("\nBest Query 3 Performance:")
-print(
-    df.loc[df["avgQuery3TimeMs"].idxmin()][
-        ["dataModel", "totalDocuments", "avgQuery3TimeMs"]
-    ]
-)
+best_insert = df.loc[df["avgInsertTimeMs"].idxmin()]
+print(f"  Model: {best_insert['dataModel']}")
+print(f"  Documents: {int(best_insert['totalDocuments'])}")
+print(f"  Time: {best_insert['avgInsertTimeMs']:.2f} ms\n")
+
+print("Best Query 1 Performance (Search by firstname):")
+best_q1 = df.loc[df["avgQuery1TimeMs"].idxmin()]
+print(f"  Model: {best_q1['dataModel']}")
+print(f"  Documents: {int(best_q1['totalDocuments'])}")
+print(f"  Time: {best_q1['avgQuery1TimeMs']:.2f} ms\n")
+
+print("Best Query 2 Performance (Search by illness_case_id):")
+best_q2 = df.loc[df["avgQuery2TimeMs"].idxmin()]
+print(f"  Model: {best_q2['dataModel']}")
+print(f"  Documents: {int(best_q2['totalDocuments'])}")
+print(f"  Time: {best_q2['avgQuery2TimeMs']:.2f} ms\n")
+
+print("Best Query 3 Performance (Fetch earliest 100 ordered):")
+best_q3 = df.loc[df["avgQuery3TimeMs"].idxmin()]
+print(f"  Model: {best_q3['dataModel']}")
+print(f"  Documents: {int(best_q3['totalDocuments'])}")
+print(f"  Time: {best_q3['avgQuery3TimeMs']:.2f} ms\n")
+
+# Overall performance by model at largest scale
+if large_scale is not None:
+    print(f"=== PERFORMANCE AT LARGEST SCALE ({scale_label} documents) ===\n")
+    large_data = df[df["totalDocuments"] == large_scale].sort_values("dataModel")
+    for _, row in large_data.iterrows():
+        print(f"{row['dataModel']}:")
+        print(f"  Insert: {row['avgInsertTimeMs']:.2f} ms")
+        print(f"  Query 1: {row['avgQuery1TimeMs']:.2f} ms")
+        print(f"  Query 2: {row['avgQuery2TimeMs']:.2f} ms")
+        print(f"  Query 3: {row['avgQuery3TimeMs']:.2f} ms")
+        avg_query = (row['avgQuery1TimeMs'] + row['avgQuery2TimeMs'] + row['avgQuery3TimeMs']) / 3
+        print(f"  Avg Query: {avg_query:.2f} ms\n")
 
 plt.show()

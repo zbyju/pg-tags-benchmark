@@ -13,6 +13,8 @@ const DATA_MODELS: DataModel[] = [
   "separate_table_indexed",
   "jsonb",
   "jsonb_indexed",
+  "separate_columns",
+  "separate_columns_indexed",
 ];
 const RUNS = 3;
 

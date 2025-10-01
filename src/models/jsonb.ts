@@ -31,11 +31,11 @@ export class JsonbModel implements DataModelImplementation {
     const totalDocs = documents.length;
 
     // Each document has 4 columns (document_id, created_by, created_at, tags)
-    // The tags field contains 5 tag objects, but it's passed as a single JSONB parameter
-    // So each row = 4 parameters
-    // Safe limit: 65534 / 4 = ~16383 rows per batch
+    // The tags field contains up to 20 tag objects, but it's passed as a single JSONB parameter
+    // So each row = 4 parameters (but with more data in the JSONB)
+    // Safe limit: 65534 / 4 = ~16383 rows per batch (reduced for larger JSONB payloads)
     const isLargeDataset = totalDocs >= 10000000;
-    const docBatchSize = isLargeDataset ? 15000 : 10000;
+    const docBatchSize = isLargeDataset ? 12000 : 8000;
 
     // Use transactions for better performance
     await sql.begin(async (sql) => {
@@ -44,18 +44,40 @@ export class JsonbModel implements DataModelImplementation {
 
       for (let i = 0; i < documents.length; i += docBatchSize) {
         const docBatch = documents.slice(i, i + docBatchSize);
-        const docInserts = docBatch.map((doc) => ({
-          document_id: doc.documentId,
-          created_by: doc.createdBy,
-          created_at: doc.createdAt,
-          tags: [
-            { key: "firstname", value: doc.firstName },
-            { key: "lastname", value: doc.lastName },
-            { key: "illness_case_id", value: doc.illnessCaseId },
-            { key: "tenant_id", value: doc.tenantId },
-            { key: "published_at", value: doc.publishedAt.toISOString() },
-          ],
-        }));
+        const docInserts = docBatch.map((doc) => {
+          const tags = [];
+
+          // Core tags (always present)
+          tags.push({ key: "firstname", value: doc.firstName });
+          tags.push({ key: "lastname", value: doc.lastName });
+          tags.push({ key: "illness_case_id", value: doc.illnessCaseId });
+          tags.push({ key: "tenant_id", value: doc.tenantId });
+          tags.push({ key: "published_at", value: doc.publishedAt.toISOString() });
+
+          // Optional tags (only add if defined)
+          if (doc.email) tags.push({ key: "email", value: doc.email });
+          if (doc.phoneNumber) tags.push({ key: "phone_number", value: doc.phoneNumber });
+          if (doc.address) tags.push({ key: "address", value: doc.address });
+          if (doc.city) tags.push({ key: "city", value: doc.city });
+          if (doc.country) tags.push({ key: "country", value: doc.country });
+          if (doc.zipCode) tags.push({ key: "zip_code", value: doc.zipCode });
+          if (doc.diagnosis) tags.push({ key: "diagnosis", value: doc.diagnosis });
+          if (doc.severity) tags.push({ key: "severity", value: doc.severity });
+          if (doc.status) tags.push({ key: "status", value: doc.status });
+          if (doc.assignedTo) tags.push({ key: "assigned_to", value: doc.assignedTo });
+          if (doc.department) tags.push({ key: "department", value: doc.department });
+          if (doc.priority) tags.push({ key: "priority", value: doc.priority });
+          if (doc.category) tags.push({ key: "category", value: doc.category });
+          if (doc.subcategory) tags.push({ key: "subcategory", value: doc.subcategory });
+          if (doc.notes) tags.push({ key: "notes", value: doc.notes });
+
+          return {
+            document_id: doc.documentId,
+            created_by: doc.createdBy,
+            created_at: doc.createdAt,
+            tags,
+          };
+        });
 
         insertPromises.push(sql`INSERT INTO documents ${sql(docInserts)}`);
       }
@@ -70,7 +92,7 @@ export class JsonbModel implements DataModelImplementation {
       SELECT document_id,
              created_by,
              created_at,
-             (SELECT value->>'value' FROM jsonb_array_elements(tags) WHERE value->>'key' = 'firstname' LIMIT 1) as firstname
+             tags
       FROM documents
       WHERE tags @> ${sql.json([{ key: "firstname", value: firstName }])}
     `;
@@ -82,7 +104,7 @@ export class JsonbModel implements DataModelImplementation {
       SELECT document_id,
              created_by,
              created_at,
-             (SELECT value->>'value' FROM jsonb_array_elements(tags) WHERE value->>'key' = 'illness_case_id' LIMIT 1) as illness_case_id
+             tags
       FROM documents
       WHERE tags @> ${sql.json([{ key: "illness_case_id", value: illnessCaseId }])}
     `;
@@ -94,7 +116,7 @@ export class JsonbModel implements DataModelImplementation {
       SELECT document_id,
              created_by,
              created_at,
-             (SELECT value->>'value' FROM jsonb_array_elements(tags) WHERE value->>'key' = 'published_at' LIMIT 1) as published_at
+             tags
       FROM documents
       ORDER BY (
         SELECT value->>'value'

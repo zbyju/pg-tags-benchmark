@@ -10,14 +10,31 @@ export interface Document {
   documentId: string;
   createdBy: string;
   createdAt: Date;
+  // Core tags (always present)
   firstName: string;
   lastName: string;
   illnessCaseId: string;
   tenantId: string;
   publishedAt: Date;
+  // Optional tags (may be null/undefined)
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  zipCode?: string;
+  diagnosis?: string;
+  severity?: string;
+  status?: string;
+  assignedTo?: string;
+  department?: string;
+  priority?: string;
+  category?: string;
+  subcategory?: string;
+  notes?: string;
 }
 
-export type DataModel = 'separate_table' | 'separate_table_indexed' | 'jsonb' | 'jsonb_indexed';
+export type DataModel = 'separate_table' | 'separate_table_indexed' | 'jsonb' | 'jsonb_indexed' | 'separate_columns' | 'separate_columns_indexed';
 
 export interface BenchmarkConfig {
   illnessCases: number;

@@ -7,8 +7,12 @@ import numpy as np
 sns.set_style("whitegrid")
 plt.rcParams["figure.figsize"] = (15, 10)
 
-# Read the CSV
+# Read the CSV and sort by totalDocuments
 df = pd.read_csv("benchmark_averages.csv")
+df = df.sort_values("totalDocuments")
+
+# Define the order for data models to ensure consistency
+model_order = ["separate_table", "separate_table_indexed", "jsonb", "jsonb_indexed"]
 
 # Create a figure with multiple subplots
 fig = plt.figure(figsize=(20, 24))
@@ -23,211 +27,307 @@ colors = {
 
 # 1. Insert Performance Comparison
 ax1 = plt.subplot(4, 2, 1)
-for model in df["dataModel"].unique():
-    model_data = df[df["dataModel"] == model]
+for model in model_order:
+    model_data = df[df["dataModel"] == model].sort_values("totalDocuments")
     ax1.plot(
         model_data["totalDocuments"],
         model_data["avgInsertTimeMs"],
         marker="o",
-        label=model,
+        label=model.replace("_", " ").title(),
         color=colors[model],
-        linewidth=2,
-        markersize=8,
+        linewidth=3,
+        markersize=10,
+        alpha=0.8,
     )
-ax1.set_xlabel("Total Documents", fontsize=12)
-ax1.set_ylabel("Avg Insert Time (ms)", fontsize=12)
-ax1.set_title("Insert Performance by Data Model", fontsize=14, fontweight="bold")
-ax1.legend()
+ax1.set_xlabel("Total Documents", fontsize=13, fontweight="bold")
+ax1.set_ylabel("Avg Insert Time (ms)", fontsize=13, fontweight="bold")
+ax1.set_title("Insert Performance Comparison", fontsize=16, fontweight="bold", pad=20)
+ax1.legend(fontsize=11, loc="best")
 ax1.set_xscale("log")
 ax1.set_yscale("log")
-ax1.grid(True, alpha=0.3)
+ax1.grid(True, alpha=0.3, linestyle="--")
 
 # 2. Query 1 Performance (firstname in tags)
 ax2 = plt.subplot(4, 2, 2)
-for model in df["dataModel"].unique():
-    model_data = df[df["dataModel"] == model]
+for model in model_order:
+    model_data = df[df["dataModel"] == model].sort_values("totalDocuments")
     ax2.plot(
         model_data["totalDocuments"],
         model_data["avgQuery1TimeMs"],
         marker="s",
-        label=model,
+        label=model.replace("_", " ").title(),
         color=colors[model],
-        linewidth=2,
-        markersize=8,
+        linewidth=3,
+        markersize=10,
+        alpha=0.8,
     )
-ax2.set_xlabel("Total Documents", fontsize=12)
-ax2.set_ylabel("Avg Query Time (ms)", fontsize=12)
-ax2.set_title("Query 1: Fetch by Firstname (Tags)", fontsize=14, fontweight="bold")
-ax2.legend()
+ax2.set_xlabel("Total Documents", fontsize=13, fontweight="bold")
+ax2.set_ylabel("Avg Query Time (ms)", fontsize=13, fontweight="bold")
+ax2.set_title(
+    "Query 1: Fetch by Firstname (Tags)", fontsize=16, fontweight="bold", pad=20
+)
+ax2.legend(fontsize=11, loc="best")
 ax2.set_xscale("log")
 ax2.set_yscale("log")
-ax2.grid(True, alpha=0.3)
+ax2.grid(True, alpha=0.3, linestyle="--")
 
 # 3. Query 2 Performance (illness case id)
 ax3 = plt.subplot(4, 2, 3)
-for model in df["dataModel"].unique():
-    model_data = df[df["dataModel"] == model]
+for model in model_order:
+    model_data = df[df["dataModel"] == model].sort_values("totalDocuments")
     ax3.plot(
         model_data["totalDocuments"],
         model_data["avgQuery2TimeMs"],
         marker="^",
-        label=model,
+        label=model.replace("_", " ").title(),
         color=colors[model],
-        linewidth=2,
-        markersize=8,
+        linewidth=3,
+        markersize=10,
+        alpha=0.8,
     )
-ax3.set_xlabel("Total Documents", fontsize=12)
-ax3.set_ylabel("Avg Query Time (ms)", fontsize=12)
-ax3.set_title("Query 2: Fetch by Illness Case ID", fontsize=14, fontweight="bold")
-ax3.legend()
+ax3.set_xlabel("Total Documents", fontsize=13, fontweight="bold")
+ax3.set_ylabel("Avg Query Time (ms)", fontsize=13, fontweight="bold")
+ax3.set_title(
+    "Query 2: Fetch by Illness Case ID", fontsize=16, fontweight="bold", pad=20
+)
+ax3.legend(fontsize=11, loc="best")
 ax3.set_xscale("log")
 ax3.set_yscale("log")
-ax3.grid(True, alpha=0.3)
+ax3.grid(True, alpha=0.3, linestyle="--")
 
 # 4. Query 3 Performance (earliest 100 by published_at)
 ax4 = plt.subplot(4, 2, 4)
-for model in df["dataModel"].unique():
-    model_data = df[df["dataModel"] == model]
+for model in model_order:
+    model_data = df[df["dataModel"] == model].sort_values("totalDocuments")
     ax4.plot(
         model_data["totalDocuments"],
         model_data["avgQuery3TimeMs"],
         marker="D",
-        label=model,
+        label=model.replace("_", " ").title(),
         color=colors[model],
-        linewidth=2,
-        markersize=8,
+        linewidth=3,
+        markersize=10,
+        alpha=0.8,
     )
-ax4.set_xlabel("Total Documents", fontsize=12)
-ax4.set_ylabel("Avg Query Time (ms)", fontsize=12)
-ax4.set_title("Query 3: Fetch Earliest 100 (ORDER BY)", fontsize=14, fontweight="bold")
-ax4.legend()
+ax4.set_xlabel("Total Documents", fontsize=13, fontweight="bold")
+ax4.set_ylabel("Avg Query Time (ms)", fontsize=13, fontweight="bold")
+ax4.set_title(
+    "Query 3: Fetch Earliest 100 (ORDER BY)", fontsize=16, fontweight="bold", pad=20
+)
+ax4.legend(fontsize=11, loc="best")
 ax4.set_xscale("log")
 ax4.set_yscale("log")
-ax4.grid(True, alpha=0.3)
+ax4.grid(True, alpha=0.3, linestyle="--")
 
-# 5. Heatmap for Insert Performance
+# 5. Direct Comparison at Specific Scale (50k documents)
 ax5 = plt.subplot(4, 2, 5)
-pivot_insert = df.pivot_table(
-    values="avgInsertTimeMs", index="documentsPerCase", columns="dataModel"
+scale_50k = df[(df["totalDocuments"] >= 40000) & (df["totalDocuments"] <= 60000)].copy()
+scale_50k = scale_50k.groupby("dataModel").first().reset_index()
+scale_50k["dataModel"] = pd.Categorical(
+    scale_50k["dataModel"], categories=model_order, ordered=True
 )
-sns.heatmap(
-    pivot_insert, annot=True, fmt=".0f", cmap="YlOrRd", ax=ax5, cbar_kws={"label": "ms"}
-)
-ax5.set_title("Insert Time Heatmap (ms)", fontsize=14, fontweight="bold")
-ax5.set_xlabel("Data Model", fontsize=12)
-ax5.set_ylabel("Documents Per Case", fontsize=12)
+scale_50k = scale_50k.sort_values("dataModel")
 
-# 6. Bar chart: Performance at maximum scale (100k cases, 50 docs/case)
-ax6 = plt.subplot(4, 2, 6)
-max_scale = df[(df["illnessCases"] == 100000) & (df["documentsPerCase"] == 50)]
-x = np.arange(len(max_scale))
+x = np.arange(len(model_order))
 width = 0.2
-ax6.bar(x - 1.5 * width, max_scale["avgInsertTimeMs"], width, label="Insert", alpha=0.8)
+ax5.bar(
+    x - 1.5 * width,
+    scale_50k["avgInsertTimeMs"],
+    width,
+    label="Insert",
+    alpha=0.8,
+    color="#1f77b4",
+)
+ax5.bar(
+    x - 0.5 * width,
+    scale_50k["avgQuery1TimeMs"],
+    width,
+    label="Query 1",
+    alpha=0.8,
+    color="#ff7f0e",
+)
+ax5.bar(
+    x + 0.5 * width,
+    scale_50k["avgQuery2TimeMs"],
+    width,
+    label="Query 2",
+    alpha=0.8,
+    color="#2ca02c",
+)
+ax5.bar(
+    x + 1.5 * width,
+    scale_50k["avgQuery3TimeMs"],
+    width,
+    label="Query 3",
+    alpha=0.8,
+    color="#d62728",
+)
+ax5.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
+ax5.set_title("Performance at ~50k Documents", fontsize=16, fontweight="bold", pad=20)
+ax5.set_xticks(x)
+ax5.set_xticklabels(
+    [m.replace("_", " ").title() for m in model_order],
+    rotation=45,
+    ha="right",
+    fontsize=10,
+)
+ax5.legend(fontsize=11)
+ax5.set_yscale("log")
+ax5.grid(True, alpha=0.3, axis="y", linestyle="--")
+
+# 6. Direct Comparison at Maximum Scale (~5M documents)
+ax6 = plt.subplot(4, 2, 6)
+max_scale = df[df["totalDocuments"] >= 4000000].copy()
+max_scale = max_scale.groupby("dataModel").first().reset_index()
+max_scale["dataModel"] = pd.Categorical(
+    max_scale["dataModel"], categories=model_order, ordered=True
+)
+max_scale = max_scale.sort_values("dataModel")
+
+x = np.arange(len(model_order))
+width = 0.2
 ax6.bar(
-    x - 0.5 * width, max_scale["avgQuery1TimeMs"], width, label="Query 1", alpha=0.8
+    x - 1.5 * width,
+    max_scale["avgInsertTimeMs"],
+    width,
+    label="Insert",
+    alpha=0.8,
+    color="#1f77b4",
 )
 ax6.bar(
-    x + 0.5 * width, max_scale["avgQuery2TimeMs"], width, label="Query 2", alpha=0.8
+    x - 0.5 * width,
+    max_scale["avgQuery1TimeMs"],
+    width,
+    label="Query 1",
+    alpha=0.8,
+    color="#ff7f0e",
 )
 ax6.bar(
-    x + 1.5 * width, max_scale["avgQuery3TimeMs"], width, label="Query 3", alpha=0.8
+    x + 0.5 * width,
+    max_scale["avgQuery2TimeMs"],
+    width,
+    label="Query 2",
+    alpha=0.8,
+    color="#2ca02c",
 )
-ax6.set_ylabel("Time (ms)", fontsize=12)
+ax6.bar(
+    x + 1.5 * width,
+    max_scale["avgQuery3TimeMs"],
+    width,
+    label="Query 3",
+    alpha=0.8,
+    color="#d62728",
+)
+ax6.set_ylabel("Time (ms)", fontsize=13, fontweight="bold")
 ax6.set_title(
-    "Performance at Max Scale (100k cases, 50 docs/case)",
-    fontsize=14,
+    "Performance at Maximum Scale (~5M documents)",
+    fontsize=16,
     fontweight="bold",
+    pad=20,
 )
 ax6.set_xticks(x)
-ax6.set_xticklabels(max_scale["dataModel"], rotation=45, ha="right")
-ax6.legend()
+ax6.set_xticklabels(
+    [m.replace("_", " ").title() for m in model_order],
+    rotation=45,
+    ha="right",
+    fontsize=10,
+)
+ax6.legend(fontsize=11)
 ax6.set_yscale("log")
-ax6.grid(True, alpha=0.3, axis="y")
+ax6.grid(True, alpha=0.3, axis="y", linestyle="--")
 
-# 7. Impact of Documents Per Case on Query Performance
+# 7. All Queries Combined - Average Performance Comparison
 ax7 = plt.subplot(4, 2, 7)
-cases_10k = df[df["illnessCases"] == 10000]
-for model in df["dataModel"].unique():
-    model_data = cases_10k[cases_10k["dataModel"] == model]
+for model in model_order:
+    model_data = df[df["dataModel"] == model].sort_values("totalDocuments")
     avg_query = (
         model_data["avgQuery1TimeMs"]
         + model_data["avgQuery2TimeMs"]
         + model_data["avgQuery3TimeMs"]
     ) / 3
     ax7.plot(
-        model_data["documentsPerCase"],
+        model_data["totalDocuments"],
         avg_query,
         marker="o",
-        label=model,
+        label=model.replace("_", " ").title(),
         color=colors[model],
-        linewidth=2,
-        markersize=8,
+        linewidth=3,
+        markersize=10,
+        alpha=0.8,
     )
-ax7.set_xlabel("Documents Per Case", fontsize=12)
-ax7.set_ylabel("Avg Query Time (ms)", fontsize=12)
+ax7.set_xlabel("Total Documents", fontsize=13, fontweight="bold")
+ax7.set_ylabel("Avg Query Time (ms)", fontsize=13, fontweight="bold")
 ax7.set_title(
-    "Query Performance vs Documents/Case (10k cases)", fontsize=14, fontweight="bold"
+    "Average Query Performance Across All Queries",
+    fontsize=16,
+    fontweight="bold",
+    pad=20,
 )
-ax7.legend()
+ax7.legend(fontsize=11, loc="best")
+ax7.set_xscale("log")
 ax7.set_yscale("log")
-ax7.grid(True, alpha=0.3)
+ax7.grid(True, alpha=0.3, linestyle="--")
 
-# 8. Speedup Factor with Indexing
+# 8. Side-by-Side Model Comparison at Key Scales
 ax8 = plt.subplot(4, 2, 8)
-separate_base = df[df["dataModel"] == "separate_table"].set_index(
-    ["illnessCases", "documentsPerCase"]
-)
-separate_idx = df[df["dataModel"] == "separate_table_indexed"].set_index(
-    ["illnessCases", "documentsPerCase"]
-)
-jsonb_base = df[df["dataModel"] == "jsonb"].set_index(
-    ["illnessCases", "documentsPerCase"]
-)
-jsonb_idx = df[df["dataModel"] == "jsonb_indexed"].set_index(
-    ["illnessCases", "documentsPerCase"]
-)
 
-# Calculate speedup for Query 2 (most dramatic differences)
-speedup_data = []
-for idx in separate_base.index:
-    if idx in separate_idx.index:
-        speedup_data.append(
-            {
-                "totalDocs": separate_base.loc[idx, "totalDocuments"],
-                "separate_speedup": separate_base.loc[idx, "avgQuery2TimeMs"]
-                / max(separate_idx.loc[idx, "avgQuery2TimeMs"], 0.1),
-                "jsonb_speedup": jsonb_base.loc[idx, "avgQuery2TimeMs"]
-                / max(jsonb_idx.loc[idx, "avgQuery2TimeMs"], 0.1),
-            }
-        )
+# Select 4 representative scales
+key_scales = df.sort_values("totalDocuments")["totalDocuments"].unique()
+scale_indices = [0, len(key_scales) // 3, 2 * len(key_scales) // 3, -1]
+selected_scales = [key_scales[i] for i in scale_indices]
 
-speedup_df = pd.DataFrame(speedup_data)
-ax8.plot(
-    speedup_df["totalDocs"],
-    speedup_df["separate_speedup"],
-    marker="o",
-    label="Separate Table",
-    color=colors["separate_table"],
-    linewidth=2,
-    markersize=8,
+comparison_data = df[df["totalDocuments"].isin(selected_scales)].copy()
+comparison_data = comparison_data.sort_values(["totalDocuments", "dataModel"])
+
+# Calculate total time (insert + avg of all queries)
+comparison_data["total_time"] = (
+    comparison_data["avgInsertTimeMs"]
+    + comparison_data["avgQuery1TimeMs"]
+    + comparison_data["avgQuery2TimeMs"]
+    + comparison_data["avgQuery3TimeMs"]
+) / 4
+
+# Group by scale and model
+groups = []
+labels = []
+for scale in selected_scales:
+    scale_data = comparison_data[comparison_data["totalDocuments"] == scale]
+    scale_data["dataModel"] = pd.Categorical(
+        scale_data["dataModel"], categories=model_order, ordered=True
+    )
+    scale_data = scale_data.sort_values("dataModel")
+    groups.append(scale_data)
+    labels.append(f"{int(scale/1000)}k docs")
+
+x = np.arange(len(model_order))
+width = 0.2
+bar_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+
+for i, (group, label) in enumerate(zip(groups, labels)):
+    offset = (i - 1.5) * width
+    ax8.bar(
+        x + offset,
+        group["total_time"],
+        width,
+        label=label,
+        alpha=0.8,
+        color=bar_colors[i],
+    )
+
+ax8.set_ylabel("Avg Time (ms)", fontsize=13, fontweight="bold")
+ax8.set_title(
+    "Overall Performance at Key Scales", fontsize=16, fontweight="bold", pad=20
 )
-ax8.plot(
-    speedup_df["totalDocs"],
-    speedup_df["jsonb_speedup"],
-    marker="s",
-    label="JSONB",
-    color=colors["jsonb"],
-    linewidth=2,
-    markersize=8,
+ax8.set_xticks(x)
+ax8.set_xticklabels(
+    [m.replace("_", " ").title() for m in model_order],
+    rotation=45,
+    ha="right",
+    fontsize=10,
 )
-ax8.axhline(y=1, color="gray", linestyle="--", alpha=0.5, label="No speedup")
-ax8.set_xlabel("Total Documents", fontsize=12)
-ax8.set_ylabel("Speedup Factor (Query 2)", fontsize=12)
-ax8.set_title("Indexing Speedup Factor", fontsize=14, fontweight="bold")
-ax8.legend()
-ax8.set_xscale("log")
+ax8.legend(fontsize=11, title="Scale", title_fontsize=11)
 ax8.set_yscale("log")
-ax8.grid(True, alpha=0.3)
+ax8.grid(True, alpha=0.3, axis="y", linestyle="--")
 
 plt.tight_layout()
 plt.savefig("benchmark_analysis.png", dpi=300, bbox_inches="tight")
